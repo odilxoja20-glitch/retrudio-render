@@ -1,0 +1,9 @@
+Proekt avtomaticheskogo poliva rasteniy na baze plat Arduino Nano 33 IoT, emkostnogo datchika vlajnosti pochvy v1.2, rele i vodyanogo nasosa[cite: 3].
+
+Sistema otsenivayet uroven vlajnosti zemli. Esli vlajnost padaet nije zadannogo poroga, mikrokontroller podayet signal na rele, kotoroe zapuskaet 12-voltnyy vodyanoy nasos dlya avtomaticheskogo poliva rasteniya[cite: 3].
+
+Instruktsiya po sborke:
+1. Ustanovite Arduino Nano 33 IoT na maketnuyu platu[cite: 3].
+2. Podklyuchite emkostnoy datchik vlajnosti pochvy (kabel GND, VCC, OUT)[cite: 3].
+3. Podklyuchite releynyy modul i nasos cherez 12V adapter pitaniya[cite: 3].
+4. Zagruzite sketch (13.ino) v Arduino IDE[cite: 3].

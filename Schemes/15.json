@@ -1,0 +1,27 @@
+{
+  "name": "Upravlenie lampochkoy cherez rele",
+  "description": "15.txt",
+  "free": true,
+  "code": "15.ino",
+  "board": "Arduino Nano 33 IoT",
+  "category": "Robotics",
+  "difficulty": "easy",
+  "components": [
+    "Arduino Nano 33 IoT",
+    "Releynyy modul 1-kanalnyy",
+    "Lampochka / Nagruzka",
+    "Maketnaya plata",
+    "Soedinitelnye provoda"
+  ],
+  "steps": [
+    "Podklyuchite pitanie rele ot platy Arduino (DC+ k 5V, DC- k GND).",
+    "Podklyuchite upravlyayushiy vyvod IN rele k tsifrovomu pinU Arduino[cite: 5].",
+    "Podklyuchite nagnutzku (lampochku) cherez vyvody COM i NO rele[cite: 5].",
+    "Zagruzite sketch (15.ino) na platu Arduino Nano 33 IoT[cite: 5]."
+  ],
+  "author": "adminodilxoja",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-11",
+  "verified": true
+}

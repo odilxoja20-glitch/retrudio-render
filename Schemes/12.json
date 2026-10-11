@@ -1,0 +1,25 @@
+{
+  "name": "Happy Birthday на пьезодинамике",
+  "description": "12.txt",
+  "free": true,
+  "code": "12.ino",
+  "board": "Arduino UNO",
+  "category": "Robotics",
+  "difficulty": "easy",
+  "components": [
+    "Arduino UNO",
+    "Пьезодинамик",
+    "Макетная плата - 400 контактов",
+    "Соединительные провода"
+  ],
+  "steps": [
+    "Подключите черный провод пьезодинамика к выводу GND на плате Arduino.",
+    "Подключите красный провод пьезодинамика к цифровому пину 8 на плате Arduino.",
+    "Загрузите скетч (12.ino) на плату Arduino."
+  ],
+  "author": "adminodilxoja",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-11",
+  "verified": true
+}

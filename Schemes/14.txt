@@ -1,0 +1,9 @@
+Slozhnyy proekt sistemy umnogo doma na baze mikrokontrollera ESP32[cite: 4].
+
+V sostav sistemy vhodyat: matrichnaya klaviatura 4x4 dlya vvoda kodov ili komand, datchik temperatury i vlajnosti DHT22, OLED-displey dlya otobrazheniya parametrov, servo-privod (naprimer, dlya upravleniya zamkom ili dveryu), pyezo-dinamik dlya zvukovoy indikatsii i knopka[cite: 4].
+
+Instruktsiya po sborke:
+1. Podklyuchite matrichnuyu klaviaturu k vyvodam ESP32[cite: 4].
+2. Podklyuchite OLED-displey po interfeysu I2C[cite: 4].
+3. Podklyuchite datchik DHT22, servo-privod, pyezo-dinamik i knopku k sootvetstvuyushchim tsifrovym i analogovym pinam[cite: 4].
+4. Zagruzite sketch (14.ino) cherez Arduino IDE[cite: 4].

@@ -1,0 +1,31 @@
+{
+  "name": "Umnyy dom na ESP32",
+  "description": "14.txt",
+  "free": false,
+  "code": "14.ino",
+  "board": "ESP32",
+  "category": "Robotics",
+  "difficulty": "hard",
+  "components": [
+    "ESP32",
+    "Matrichnaya klaviatura 4x4",
+    "Datchik temperatury i vlajnosti DHT22",
+    "OLED-displey 128x64 (I2C)",
+    "Servo-privod",
+    "Pyezo-dinamik",
+    "Knopka",
+    "Maketnaya plata",
+    "Soedinitelnye provoda"
+  ],
+  "steps": [
+    "Podklyuchite klaviaturu, datchik DHT22 i OLED-displey k plate ESP32 soglasno skheme.",
+    "Podklyuchite servo-privod i pyezo-dinamik k sootvetstvuyushchim tsifrovym pinam.",
+    "Ustanovite neobhodimye biblioteki dlya raboty s Keypad, DHT, Servo i OLED-displeem v Arduino IDE.",
+    "Zagruzite sketch (14.ino) na platu ESP32."
+  ],
+  "author": "adminodilxoja",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-11",
+  "verified": true
+}

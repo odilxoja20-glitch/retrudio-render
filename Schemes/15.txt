@@ -1,0 +1,10 @@
+Prostoy proekt dlya upravleniya moshchnoy nagruzkoy (naprimer, lampochkoy) s pomoshchyu 1-kanalnogo releynogo modulya i platy Arduino Nano 33 IoT[cite: 5].
+
+Rele pozvolyaet bezopasno kommutirovat vysokovoltnye ili moshchnye ustroystva s pomoshchyu nizkovoltnogo upravlyayuschego signala s mikrokontrollera[cite: 5].
+
+Instruktsiya po sborke:
+1. Ustanovite Arduino Nano 33 IoT na maketnuyu platu[cite: 5].
+2. Podklyuchite vyvody DC+ i DC- releynogo modulya k linii pitaniya 5V i GND[cite: 5].
+3. Podklyuchite signalnyy vyvod IN rele k tsifrovomu pinU 7[cite: 5].
+4. Podklyuchite lampochku cherez silovye kontakty COM i NO rele[cite: 5].
+5. Zagruzite sketch (15.ino) v Arduino IDE[cite: 5].

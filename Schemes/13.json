@@ -1,0 +1,30 @@
+{
+  "name": "Avtomaticheskiy poliv rasteniy",
+  "description": "13.txt",
+  "free": false,
+  "code": "13.ino",
+  "board": "Arduino Nano 33 IoT",
+  "category": "Robotics",
+  "difficulty": "hard",
+  "components": [
+    "Arduino Nano 33 IoT",
+    "Emkostnoy datchik vlajnosti pochvy v1.2",
+    "Releynyy modul 1-kanalnyy",
+    "Vodyanoy nasos 12V",
+    "Adapter pitaniya 5V",
+    "Adapter pitaniya 12V",
+    "Maketnaya plata",
+    "Soedinitelnye provoda"
+  ],
+  "steps": [
+    "Podklyuchite emkostnoy datchik vlajnosti pochvy k pitaniyu i analogovomu vyvodu Arduino Nano 33 IoT[cite: 3].",
+    "Podklyuchite upravlyayushiy vyvod rele k tsifrovomu pinU Arduino[cite: 3].",
+    "Podklyuchite vodyanoy nasos cherez rele k 12V adapteru pitaniya[cite: 3].",
+    "Zagruzite sketch (13.ino) na platu[cite: 3]."
+  ],
+  "author": "adminodilxoja",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-11",
+  "verified": true
+}
