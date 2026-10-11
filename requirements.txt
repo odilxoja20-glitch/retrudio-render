@@ -3,3 +3,4 @@ Pygments==2.18.0
 python-dotenv==1.0.1
 gunicorn==22.0.0
 Pillow==10.4.0
+aiogram
