@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}<h1>{{ t('plans') }}</h1>
+<div class="grid two">
+  <div class="panel"><h2>{{ t('free_plan') }}</h2><p class="muted">{{ t('free') }}: {{ t('nav_projects') }}, {{ t('nav_builder') }}, {{ t('comments') }}</p></div>
+  <div class="panel"><h2>{{ t('pro_plan') }}</h2><p class="muted">{{ t('pricing_feat') }}</p>
+    {% if has_sub and user['subscription_until'] %}<p>{{ t('active_until') }}: {{ user['subscription_until'][:10] }}</p>{% elif has_sub %}<p>Admin: all projects unlocked</p>{% endif %}
+    {% if cfg.FREEKASSA_READY %}
+      <p><b>{{ cfg.SUBSCRIPTION_PRICE }} {{ cfg.SUBSCRIPTION_CURRENCY }}</b> / {{ cfg.SUBSCRIPTION_DAYS }} {{ t('days') }}</p>
+      {% if user %}
+        <!-- Переход по ссылке вместо формы оплаты -->
+        <a class="btn" href="https://t.me/retrudio_bot" target="_blank">
+          {{ t('buy') if not has_sub else t('extend') }}
+        </a>
+      {% else %}
+        <a class="btn" href="{{ url_for('login', next=request.path) }}">{{ t('login') }}</a>
+      {% endif %}
+    {% else %}
+      <p class="note warn">{{ t('not_configured') }}</p>
+    {% endif %}
+  </div>
+</div>{% endblock %}

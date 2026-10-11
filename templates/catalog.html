@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% from "_macros.html" import card with context %}
+{% block title %}{{ t('nav_projects') }} — {{ PROJECT_NAME }}{% endblock %}
+{% block content %}
+<h1>{{ t('nav_projects') }} <small class="muted">({{ total }})</small></h1>
+<div class="layout">
+<form class="filters panel" method="get">
+  <input name="q" value="{{ args.get('q','') }}" placeholder="{{ t('search_ph') }}">
+  <label>{{ t('board') }}<select name="board"><option value="">{{ t('all') }}</option>
+    {% for b in boards %}<option {{ 'selected' if args.get('board')==b }}>{{ b }}</option>{% endfor %}</select></label>
+  <label>{{ t('category') }}<select name="category"><option value="">{{ t('all') }}</option>
+    {% for c in CATEGORIES %}<option value="{{ c }}" {{ 'selected' if args.get('category')==c }}>{{ t('cat_' ~ c) }}</option>{% endfor %}</select></label>
+  <label>{{ t('difficulty') }}<select name="difficulty"><option value="">{{ t('all') }}</option>
+    {% for d in ['easy','medium','hard'] %}<option value="{{ d }}" {{ 'selected' if args.get('difficulty')==d }}>{{ t(d) }}</option>{% endfor %}</select></label>
+  <label>{{ t('access') }}<select name="access"><option value="">{{ t('all') }}</option>
+    <option value="free" {{ 'selected' if args.get('access')=='free' }}>{{ t('free') }}</option>
+    <option value="paid" {{ 'selected' if args.get('access')=='paid' }}>{{ t('paid') }}</option></select></label>
+  <label>{{ t('component') }}<input name="component" value="{{ args.get('component','') }}" placeholder="HC-SR04"></label>
+  <label>{{ t('sort') }}<select name="sort">
+    <option value="new">{{ t('sort_new') }}</option>
+    <option value="name" {{ 'selected' if args.get('sort')=='name' }}>{{ t('sort_name') }}</option></select></label>
+  <button class="btn">{{ t('apply') }}</button>
+  <a class="btn ghost" href="{{ url_for('projects') }}">{{ t('reset') }}</a>
+</form>
+<div>
+  {% if items %}<div class="grid">{% for p in items %}{{ card(p) }}{% endfor %}</div>
+  {% else %}<div class="empty"><p class="muted">{{ t('nothing_found') }}</p></div>{% endif %}
+  {% if pages > 1 %}
+  <div class="pager">
+    {% if page > 1 %}<a class="btn ghost small" href="{{ url_for('projects', page=page-1, **args) }}">{{ t('prev') }}</a>{% endif %}
+    <span class="muted">{{ t('page') }} {{ page }} / {{ pages }}</span>
+    {% if page < pages %}<a class="btn ghost small" href="{{ url_for('projects', page=page+1, **args) }}">{{ t('next') }}</a>{% endif %}
+  </div>{% endif %}
+</div>
+</div>
+{% endblock %}

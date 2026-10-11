@@ -1,0 +1,4 @@
+{% extends "base.html" %}
+{% block content %}<h1>{{ t('nav_donate') }}</h1><p class="lead">{{ t('donate_text') }}</p>
+{% if cfg.DONATE_URL %}<a class="btn" href="{{ cfg.DONATE_URL }}" rel="noopener" target="_blank">{{ t('donate_btn') }}</a>
+{% else %}<p class="note warn">{{ t('not_configured') }}</p>{% endif %}{% endblock %}

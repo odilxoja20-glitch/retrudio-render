@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% from "_macros.html" import card with context %}
+{% block content %}<h1>{{ t('my_favs') }}</h1>
+{% if items %}<div class="grid">{% for p in items %}{{ card(p) }}{% endfor %}</div>
+{% else %}<div class="empty"><p class="muted">{{ t('no_favs') }}</p></div>{% endif %}{% endblock %}

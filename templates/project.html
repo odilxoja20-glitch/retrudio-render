@@ -1,0 +1,63 @@
+{% extends "base.html" %}{% from "_macros.html" import card with context %}
+{% block title %}{{ loc(p.name) }} — {{ PROJECT_NAME }}{% endblock %}
+{% block content %}
+<article class="project-page">
+  <div class="row"><h1>{{ loc(p.name) }}</h1>
+    <span class="tag {{ 'free' if p.free else 'paid' }}">{{ t('free') if p.free else t('paid') }}</span></div>
+  <div class="meta big">
+    {% if p.board %}<span>{{ p.board }}</span>{% endif %}
+    {% if p.difficulty %}<span>{{ t(p.difficulty) }}</span>{% endif %}
+    {% if p.category %}<span>{{ t('cat_' ~ p.category) }}</span>{% endif %}
+    {% if p.author %}<span>{{ t('author') }}: {{ p.author }}</span>{% endif %}
+    <span>{{ t('published') }}: {{ p.published }}</span>
+    {% if p.version %}<span>{{ t('version') }}: {{ p.version }}</span>{% endif %}
+    {% if p.license %}<span>{{ t('license') }}: {{ p.license }}</span>{% endif %}
+    {% if n_rated %}<span>★ {{ avg }} ({{ n_rated }})</span>{% endif %}
+  </div>
+  <p class="note {{ 'ok' if p.verified }}">{{ t('verified') if p.verified else t('unverified') }}</p>
+
+  <div class="actions">
+    <form method="post" action="{{ url_for('favorite', pid=p.id) }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn ghost">{{ t('unfavorite') if is_fav else t('favorite') }}</button></form>
+    <button class="btn ghost" data-share>{{ t('share') }}</button>
+  </div>
+
+  {% if p.has_image %}<img class="scheme" src="{{ url_for('scheme_image', pid=p.id) }}" alt="{{ loc(p.name) }}">{% endif %}
+
+  {% if not ok %}
+  <div class="panel locked"><h3>🔒 {{ t('locked_title') }}</h3><p class="muted">{{ t('locked_text') }}</p>
+    <a class="btn" href="{{ url_for('pricing') }}">{{ t('buy') }}</a></div>
+  {% else %}
+    {% if p.components %}<h2>{{ t('components') }}</h2><ul class="chips big">{% for c in p.components %}<li><i>{{ c }}</i></li>{% endfor %}</ul>{% endif %}
+    {% if p.wiring %}<h2>{{ t('wiring') }}</h2>
+    <div class="table-wrap"><table><tr><th>{{ t('component') }}</th><th>{{ t('pin') }}</th><th>{{ t('to_pin') }}</th></tr>
+      {% for w in p.wiring %}<tr><td>{{ w.component }}</td><td>{{ w.pin }}</td><td>{{ w.board_pin }}</td></tr>{% endfor %}</table></div>{% endif %}
+    {% if p.warnings %}<h2>{{ t('warnings') }}</h2>{% for w in p.warnings %}<div class="note warn">{{ loc(w) }}</div>{% endfor %}{% endif %}
+    {% set d = loc(p.description) %}{% if d %}<h2>{{ t('description') }}</h2><div class="prose">{{ d }}</div>{% endif %}
+    {% if p.steps %}<h2>{{ t('steps') }}</h2><ol class="steps">{% for s in p.steps %}<li>{{ loc(s) }}</li>{% endfor %}</ol>{% endif %}
+    {% if p.code %}
+    <h2>{{ t('code') }}</h2>
+    <div class="actions"><button class="btn small" data-copy="#code-src">{{ t('copy') }}</button>
+      <a class="btn small ghost" href="{{ url_for('download', pid=p.id) }}">{{ t('download') }}</a></div>
+    <textarea id="code-src" hidden>{{ p.code }}</textarea>
+    {{ code_html }}
+    {% if p.dependencies %}<p class="muted">{{ t('dependencies') }}: {{ p.dependencies|join(', ') }}</p>{% endif %}
+    {% if p.changelog %}<h3>{{ t('changelog') }}</h3><ul>{% for c in p.changelog %}<li><b>{{ c.version }}</b> {{ c.date }} — {{ c.note }}</li>{% endfor %}</ul>{% endif %}
+    {% endif %}
+  {% endif %}
+
+  <h2 id="comments">{{ t('comments') }}</h2>
+  {% if user %}
+  <form method="post" action="{{ url_for('comment', pid=p.id) }}" class="panel stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <textarea name="body" required maxlength="2000" rows="3"></textarea>
+    <label>{{ t('rating') }} <select name="rating"><option value="">{{ t('no_rating') }}</option>{% for i in range(5,0,-1) %}<option>{{ i }}</option>{% endfor %}</select></label>
+    <button class="btn small">{{ t('add_comment') }}</button>
+  </form>
+  {% else %}<p class="muted"><a href="{{ url_for('login', next=request.path) }}">{{ t('need_login') }}</a></p>{% endif %}
+  {% for c in comments %}<div class="comment"><b>{{ c['name'] }}</b>{% if c['rating'] %} ★{{ c['rating'] }}{% endif %}
+    <span class="muted"> {{ c['created'] }}</span><p>{{ c['body'] }}</p></div>{% endfor %}
+
+  {% if similar %}<h2>{{ t('similar') }}</h2><div class="grid">{% for s in similar %}{{ card(s) }}{% endfor %}</div>{% endif %}
+</article>
+{% endblock %}

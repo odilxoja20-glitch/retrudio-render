@@ -1,0 +1,86 @@
+{% extends "base.html" %}{% from "_macros.html" import card, empty with context %}
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>{{ t('hero_title') }}</h1>
+    <p class="lead">{{ t('hero_sub') }}</p>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('projects') }}">{{ t('explore') }}</a>
+      <a class="btn ghost" href="{{ url_for('builder') }}">{{ t('create_scheme') }}</a>
+    </div>
+    <form class="search" action="{{ url_for('projects') }}"><input name="q" placeholder="{{ t('search_ph') }}"><button class="btn">{{ t('search') }}</button></form>
+  </div>
+  <svg class="board" viewBox="0 0 360 240" role="img" aria-label="Arduino board">
+    <rect x="10" y="30" width="340" height="180" rx="14" fill="#0b2a4a" stroke="#2f7dff" stroke-width="2"/>
+    <rect x="30" y="50" width="70" height="60" rx="4" fill="#142033" stroke="#3ee0ff"/>
+    <rect x="140" y="80" width="80" height="80" rx="6" fill="#0a1220" stroke="#8b5cf6"/>
+    <text x="180" y="125" fill="#8b97b0" font-size="12" text-anchor="middle">MCU</text>
+    {% for i in range(14) %}<rect x="{{ 70 + i*17 }}" y="36" width="9" height="10" fill="#e6ecf8"/>{% endfor %}
+    {% for i in range(8) %}<rect x="{{ 150 + i*17 }}" y="194" width="9" height="10" fill="#e6ecf8"/>{% endfor %}
+    <path d="M60 110 V150 H140" stroke="#3ee0ff" fill="none" stroke-width="2"/>
+    <path d="M220 120 H300 V60" stroke="#2f7dff" fill="none" stroke-width="2"/>
+    <circle cx="300" cy="60" r="6" fill="#3ee0ff"/>
+  </svg>
+</section>
+
+<section>
+  <h2>{{ t('categories') }}</h2>
+  <div class="cats">{% for c in CATEGORIES %}<a class="cat" href="{{ url_for('projects', category=c) }}">{{ t('cat_' ~ c) }}</a>{% endfor %}</div>
+</section>
+
+<section>
+  <h2>{{ t('latest') }}</h2>
+  {% if latest %}<div class="grid">{% for p in latest %}{{ card(p) }}{% endfor %}</div>{% else %}{{ empty() }}{% endif %}
+</section>
+
+{% if popular %}
+<section><h2>{{ t('popular') }}</h2>
+  <div class="grid">{% for p, n in popular %}{{ card(p) }}{% endfor %}</div></section>
+{% endif %}
+
+<section class="split">
+  <div class="panel"><h2>{{ t('features_title') }}</h2><p class="muted">{{ t('features_text') }}</p>
+    <a class="btn ghost" href="{{ url_for('builder') }}">{{ t('create_scheme') }}</a></div>
+  <div class="panel"><h2>{{ t('plans') }}</h2><p class="muted">{{ t('pricing_feat') }}</p>
+    <a class="btn ghost" href="{{ url_for('pricing') }}">{{ t('nav_pricing') }}</a></div>
+</section>
+
+<section class="cta"><h2>{{ t('publish_cta') }}</h2>
+  <a class="btn" href="{{ url_for('builder') }}">{{ t('create_scheme') }}</a></section>
+
+<div class="modal-overlay" id="termsModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+    <h2 id="termsTitle">Terms of Agree</h2>
+    <p>
+      Зайдите в бота <a href="https://t.me/Retrudio_bot" target="_blank" rel="noopener">@Retrudio_bot</a>
+      и прочтите Terms of Agree. Нажимая на кнопку «Принять», вы автоматически принимаете
+      Terms of Agree и предоставление услуг Telegram Messenger Inc.
+    </p>
+    <button class="btn" id="termsAccept" type="button">Принять</button>
+  </div>
+</div>
+
+<style>
+  .modal-overlay { position: fixed; inset: 0; background: rgba(5,10,20,.7);
+    display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+  .modal-overlay[hidden] { display: none; }
+  .modal { background: #142033; border: 1px solid #2f7dff; border-radius: 14px;
+    max-width: 420px; width: 100%; padding: 24px; color: #e6ecf8; }
+  .modal h2 { margin-top: 0; }
+  .modal a { color: #3ee0ff; }
+  .modal .btn { margin-top: 16px; width: 100%; }
+</style>
+
+<script>
+  (function () {
+    var modal = document.getElementById('termsModal');
+    var accepted = false;
+    try { accepted = localStorage.getItem('termsAccepted') === '1'; } catch (e) {}
+    if (!accepted) modal.hidden = false;
+    document.getElementById('termsAccept').addEventListener('click', function () {
+      try { localStorage.setItem('termsAccepted', '1'); } catch (e) {}
+      modal.hidden = true;
+    });
+  })();
+</script>
+{% endblock %}

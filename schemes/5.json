@@ -1,0 +1,16 @@
+{
+  "name": "Автоматизированная система полива растений",
+  "description": "5.txt",
+  "free": false,
+  "code": "5.ino",
+  "board": "Arduino UNO",
+  "category": "auto",
+  "difficulty": "medium",
+  "components": ["Arduino UNO", "LED 4x", "16x2 ЖК-дисплей с интерфейсом I²C", "Grove - Цифровой датчик освещенности", "Gravity: Аналоговый датчик почвы коррозионностойкий", "Arduino uno rev3", "Сервопривод"],
+  "warnings": ["Всегда проверяйте все ли правильно, мы не несём ответственности"],
+  "author": "adminrahmatulloh",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-10",
+  "verified": true
+}

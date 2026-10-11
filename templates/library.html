@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_library') }} — {{ PROJECT_NAME }}{% endblock %}
+{% block content %}
+<h1>{{ t('nav_library') }}</h1><p class="muted">{{ t('lib_intro') }}</p>
+<form class="inlineform" method="get">
+  <input name="q" value="{{ args.get('q','') }}" placeholder="{{ t('search_ph') }}">
+  <select name="board"><option value="">{{ t('board') }}: {{ t('all') }}</option>
+    {% for b in boards %}<option {{ 'selected' if args.get('board')==b }}>{{ b }}</option>{% endfor %}</select>
+  <select name="difficulty"><option value="">{{ t('difficulty') }}: {{ t('all') }}</option>
+    {% for d in ['easy','medium','hard'] %}<option value="{{ d }}" {{ 'selected' if args.get('difficulty')==d }}>{{ t(d) }}</option>{% endfor %}</select>
+  <input name="component" value="{{ args.get('component','') }}" placeholder="{{ t('component') }}">
+  <button class="btn">{{ t('search') }}</button>
+</form>
+{% if items %}
+<div class="table-wrap"><table>
+  <tr><th>{{ t('title') }}</th><th>{{ t('board') }}</th><th>{{ t('version') }}</th><th>{{ t('license') }}</th><th>{{ t('dependencies') }}</th><th>{{ t('published') }}</th><th></th></tr>
+  {% for p in items %}
+  <tr>
+    <td><a href="{{ url_for('project', pid=p.id) }}">{{ loc(p.name) }}</a> <span class="tag {{ 'free' if p.free else 'paid' }}">{{ t('free') if p.free else t('paid') }}</span></td>
+    <td>{{ p.board }}</td><td>{{ p.version or '—' }}</td><td>{{ p.license or '—' }}</td>
+    <td>{{ p.dependencies|join(', ') or '—' }}</td><td>{{ p.published }}</td>
+    <td>{% if p.free or has_sub %}<a href="{{ url_for('download', pid=p.id) }}">.ino</a>{% else %}🔒{% endif %}</td>
+  </tr>{% endfor %}
+</table></div>
+{% else %}<div class="empty"><p class="muted">{{ t('nothing_found') }}</p></div>{% endif %}
+{% endblock %}

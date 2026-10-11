@@ -1,0 +1,21 @@
+{% macro card(p) %}
+<a class="card project" href="{{ url_for('project', pid=p.id) }}">
+  <div class="thumb">{% if p.has_image %}<img loading="lazy" src="{{ url_for('scheme_image', pid=p.id) }}" alt="">{% endif %}</div>
+  <div class="body">
+    <div class="row"><h3>{{ loc(p.name) }}</h3>
+      <span class="tag {{ 'free' if p.free else 'paid' }}">{{ t('free') if p.free else t('paid') }}</span></div>
+    {% set d = loc(p.description) %}
+    <p class="muted clamp">{{ d[:140] }}</p>
+    <div class="meta">
+      {% if p.board %}<span>{{ p.board }}</span>{% endif %}
+      {% if p.difficulty %}<span>{{ t(p.difficulty) }}</span>{% endif %}
+      {% if p.author %}<span>{{ p.author }}</span>{% endif %}
+      <span>{{ p.published }}</span>
+    </div>
+    {% if p.components %}<div class="chips">{% for c in p.components[:4] %}<i>{{ c }}</i>{% endfor %}</div>{% endif %}
+  </div>
+</a>
+{% endmacro %}
+{% macro empty() %}
+<div class="empty"><h3>{{ t('empty_title') }}</h3><p class="muted">{{ t('empty_text') }}</p></div>
+{% endmacro %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="empty">
+  {% if ok %}
+    <h1>{{ t('pay_ok_title') }}</h1><p class="muted">{{ t('pay_ok_text') }}</p>
+  {% else %}
+    <h1>{{ t('pay_fail_title') }}</h1><p class="muted">{{ t('pay_fail_text') }}</p>
+  {% endif %}
+  <a class="btn" href="{{ url_for('pricing') }}">{{ t('nav_pricing') }}</a>
+</div>
+{% endblock %}
