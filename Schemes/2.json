@@ -1,0 +1,29 @@
+{
+  "name": "Bluetooth начало.",
+  "description": "2.txt",
+  "free": true,
+  "code": "2.ino",
+  "board": "Arduino UNO",
+  "category": "wireless",
+  "difficulty": "easy",
+  "components": [
+    "Arduino UNO",
+    "HC-05",
+    "LED"
+  ],
+  "warnings": [
+    "Всегда ставьте резистор последовательно со светодиодом, иначе LED или пин платы могут выйти из строя."
+  ],
+  "steps": [
+    "Соберите цепь по таблице при отключённом USB.",
+    "Подключите плату и загрузите скетч.",
+    "Если LED не мигает — проверьте полярность светодиода (длинная ножка — анод).",
+    "avrdude: stk500_getsync() attempt 10 of 10: not in sync: resp=0x00\nProblem uploading to board. See http://www.arduino.cc/en/Guide/Troubleshooting#upload for suggestions.",
+    "Вылезла ошибка? отсоедините TX-RX перед заливкой прошивки."
+  ],
+  "author": "adminodilxoja",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-11",
+  "verified": true
+}

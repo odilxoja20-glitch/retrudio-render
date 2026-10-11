@@ -1,0 +1,17 @@
+{
+  "name": "Робот-Балансер",
+  "description": "8.txt",
+  "free": true,
+  "code": "8.ino",
+  "board": "Arduino UNO",
+  "category": "leds",
+  "difficulty": "hard",
+  "components": ["Arduino UNO", "2x dc-motor", "MPU6050", "L293D", "3.7 lithium батареи"],
+  "warnings": ["Собирайте проект в выключенном виде."],
+  "steps": ["Соберите цепь по таблице при отключённом USB.", "Подключите плату и загрузите скетч.", "Если LED Arduino не мигает — проверьте подключение, либо состояние плат."],
+  "author": "adminodilxoja",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-10",
+  "verified": true
+}
