@@ -1,0 +1,17 @@
+{
+  "name": "Система обнаружения света LDR",
+  "description": "17.txt",
+  "free": true,
+  "code": "17.ino",
+  "board": "Arduino nano",
+  "category": "Умный дом",
+  "difficulty": "easy",
+  "components": ["Arduino nano", "Набор из 70 светодиодов диаметром 50мм", "LDR", "Активный зуммер(Buzzer)"],
+  "warnings": ["Всегда перепроврйте все ли правилно мы не несем ответственности"],
+  "steps": ["Соберите цепь по таблице при отключённом USB.", "Подключите плату и загрузите скетч."],
+  "author": "adminrahmatulloh",
+  "license": "CC0",
+  "version": "1.0",
+  "published": "2026-10-12",
+  "verified": true
+}
