@@ -36,7 +36,7 @@ FREEKASSA_READY = bool(FREEKASSA_SHOP_ID and FREEKASSA_SECRET1 and FREEKASSA_SEC
                        and SUBSCRIPTION_CURRENCY in FREEKASSA_CURRENCIES)
 
 # --- sc5mails: письма с кодом подтверждения при регистрации ---
-SC5MAILS_BASE_URL = os.getenv("SC5MAILS_BASE_URL", "https://sc5mails.onrender.com").rstrip("/")
+SC5MAILS_BASE_URL = os.getenv("SC5MAILS_BASE_URL", "https://sc5mails.space").rstrip("/")
 SC5MAILS_COMPANY = os.getenv("SC5MAILS_COMPANY", "") or PROJECT_NAME     # company_name в сервисе; по умолчанию название проекта
 SC5MAILS_SERVICE = os.getenv("SC5MAILS_SERVICE", PROJECT_NAME)           # «имя на сервисе»
 SC5MAILS_SUBJECT = os.getenv("SC5MAILS_SUBJECT", f"{PROJECT_NAME}: код подтверждения")
