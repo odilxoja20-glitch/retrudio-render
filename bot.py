@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # <--- Вставь свой токен от @BotFather
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+SUBSCRIPTION_PRICE = os.getenv("SUBSCRIPTION_PRICE")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -137,7 +138,7 @@ async def cmd_buy(message: Message, state: FSMContext):
         return
 
     # Стоимость подписки изменена на 15 звёзд
-    prices = [LabeledPrice(label="PRO Подписка (30 дней)", amount=1)]
+    prices = [LabeledPrice(label="Подписка (30 дней)", amount=SUBSCRIPTION_PRICE)]
 
     await message.answer_invoice(
         title="Оплата PRO-тарифа",
