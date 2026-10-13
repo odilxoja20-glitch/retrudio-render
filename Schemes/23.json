@@ -1,6 +1,6 @@
 {
   "name": "Испытательный стенд для проверки двигательной установки и системы защиты электропитания дронов",
-  "description": "1.txt",
+  "description": "23.txt",
   "free": true,
   "code": "23.ino",
   "board": "Arduino UNO",
