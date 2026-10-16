@@ -2,6 +2,8 @@ import asyncio
 import sqlite3
 import os
 import logging
+import random
+import string
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, F, types
@@ -24,6 +26,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 SUBSCRIPTION_PRICE = os.getenv("SUBSCRIPTION_PRICE")
 SITE_URL = os.getenv("SITE_URL", "https://retrudio.com")
 
+# Список ID администраторов
+ADMIN_IDS = [5025390367, 5025390367]
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 SCHEMS_DIR = os.path.join(BASE_DIR, "Schems")
@@ -33,8 +38,8 @@ DB_PATH = os.path.join(DATA_DIR, "app.db")
 
 # Защита от брутфорса: {telegram_id: {"attempts": int, "blocked_until": datetime}}
 _login_attempts: dict = {}
-MAX_ATTEMPTS = 5          # максимум попыток
-BLOCK_DURATION_MIN = 15   # блокировка на 15 минут
+MAX_ATTEMPTS = 5          
+BLOCK_DURATION_MIN = 15   
 # -----------------
 
 bot = Bot(token=BOT_TOKEN, is_test=False)
@@ -52,10 +57,46 @@ class ChangePasswordStates(StatesGroup):
     waiting_for_confirm_password = State()
 
 
-# --- Вспомогательные функции ---
+# --- Инициализация базы данных и новых колонок статусов ---
+def init_db_columns():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        if "telegram_id" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN telegram_id INTEGER")
+        if "status" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'")
+        if "banned_until" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN banned_until TEXT")
+        if "ban_reason" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN ban_reason TEXT")
+        if "is_admin" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
+            
+        conn.commit()
+        conn.close()
+    except Exception as e:
+.error(f"Ошибка инициализации колонок БД: {e}")
 
-def is_blocked(tg_id: int) -> tuple[bool, int]:
-    """Проверяет, заблокирован ли пользователь. Возвращает (заблокирован, минут_осталось)."""
+
+def is_admin(tg_id: int) -> bool:
+    if tg_id in ADMIN_IDS:
+        return True
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT is_admin FROM users WHERE telegram_id = ?", (tg_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return bool(row and row[0] == 1)
+    except Exception:
+        return False
+
+
+def is_blocked_brute(tg_id: int) -> tuple[bool, int]:
     info = _login_attempts.get(tg_id)
     if not info:
         return False, 0
@@ -66,7 +107,6 @@ def is_blocked(tg_id: int) -> tuple[bool, int]:
 
 
 def record_failed_attempt(tg_id: int) -> int:
-    """Записывает неудачную попытку. Возвращает количество оставшихся попыток."""
     if tg_id not in _login_attempts:
         _login_attempts[tg_id] = {"attempts": 0, "blocked_until": None}
 
@@ -82,20 +122,18 @@ def record_failed_attempt(tg_id: int) -> int:
 
 
 def reset_attempts(tg_id: int):
-    """Сбрасывает счётчик попыток после успешного входа."""
     if tg_id in _login_attempts:
         del _login_attempts[tg_id]
 
 
-# --- Команды ---
+# --- Пользовательские команды ---
 
-# /start
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     docs_path = os.path.join(SCHEMS_DIR, "docs.html")
     caption_text = (
         "📜 **Ознакомьтесь с правилами сервиса.**\n\n"
-        "Если вы согласны с условиями использования и политикой возврата, "
+        "Если вы согласны с условиями использования, "
         "войдите в аккаунт командой: /login\n\n"
         "📋 Список команд: /help"
     )
@@ -103,17 +141,14 @@ async def cmd_start(message: Message):
         document = FSInputFile(docs_path)
         await message.answer_document(document=document, caption=caption_text)
     else:
-        await message.answer(
-            "⚠️ Файл с правилами не найден, но вы можете продолжить.\n\n" + caption_text
-        )
+        await message.answer("⚠️ Файл с правилами не найден.\n\n" + caption_text)
 
 
-# /help
 @dp.message(Command("help"))
 async def cmd_help(message: Message):
     await message.answer(
         "📋 **Список команд:**\n\n"
-        "/start — начало работы и правила\n"
+        "/start — начало работы\n"
         "/login — войти в аккаунт\n"
         "/buy — купить подписку (30 дней)\n"
         "/status — проверить статус подписки\n"
@@ -123,7 +158,6 @@ async def cmd_help(message: Message):
     )
 
 
-# /status
 @dp.message(Command("status"))
 async def cmd_status(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -169,16 +203,14 @@ async def cmd_status(message: Message, state: FSMContext):
         await message.answer(f"⚠️ Ошибка: {e}")
 
 
-# /login — шаг 1
+# --- Авторизация и проверка статусов банов ---
+
 @dp.message(Command("login"))
 async def cmd_login(message: Message, state: FSMContext):
     tg_id = message.from_user.id
-    blocked, mins = is_blocked(tg_id)
+    blocked, mins = is_blocked_brute(tg_id)
     if blocked:
-        await message.answer(
-            f"🚫 **Слишком много неудачных попыток.**\n"
-            f"Повторите через {mins} мин."
-        )
+        await message.answer(f"🚫 **Слишком много неудачных попыток.**\nПовторите через {mins} мин.")
         return
 
     await message.answer(
@@ -203,19 +235,15 @@ async def process_password(message: Message, state: FSMContext):
         await message.answer("⚠️ Завершите авторизацию — введите пароль.")
         return
 
-    # Удаляем сообщение с паролем
     try:
         await message.delete()
     except Exception:
         pass
 
-    blocked, mins = is_blocked(tg_id)
+    blocked, mins = is_blocked_brute(tg_id)
     if blocked:
         await state.clear()
-        await message.answer(
-            f"🚫 **Слишком много неудачных попыток.**\n"
-            f"Повторите через {mins} мин."
-        )
+        await message.answer(f"🚫 **Слишком много неудачных попыток.**\nПовторите через {mins} мин.")
         return
 
     password = message.text
@@ -226,18 +254,39 @@ async def process_password(message: Message, state: FSMContext):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, username, password_hash FROM users WHERE email = ? OR username = ?",
+            "SELECT id, username, password_hash, status, banned_until, ban_reason FROM users WHERE email = ? OR username = ?",
             (login, login),
         )
         user = cursor.fetchone()
-        conn.close()
 
         if user:
-            user_id_db, username_db, password_hash = user
+            user_id_db, username_db, password_hash, status, banned_until, ban_reason = user
+            
+            # Проверка статуса BANNED / PERM_BANNED
+            if status == 'perm_banned':
+                conn.close()
+                await state.clear()
+                await message.answer(f"🚫 **Ваш аккаунт заблокирован навсегда.**\nПричина: {ban_reason or 'Нарушение правил'}")
+                return
+            elif status == 'banned' and banned_until:
+                banned_dt = datetime.fromisoformat(banned_until)
+                if banned_dt > datetime.utcnow():
+                    conn.close()
+                    await state.clear()
+                    await message.answer(f"🚫 **Ваш аккаунт заблокирован.**\nСрок: до {banned_until[:16]}\nПричина: {ban_reason or 'Нарушение правил'}")
+                    return
+                else:
+                    cursor.execute("UPDATE users SET status='active', banned_until=NULL, ban_reason=NULL WHERE id=?", (user_id_db,))
+                    conn.commit()
+
             display_name = username_db if username_db else "Пользователь"
 
             if check_password_hash(password_hash, password) or password == password_hash:
                 reset_attempts(tg_id)
+                cursor.execute("UPDATE users SET telegram_id=? WHERE id=?", (tg_id, user_id_db))
+                conn.commit()
+                conn.close()
+                
                 await state.clear()
                 await state.update_data(user_id_db=user_id_db)
                 await message.answer(
@@ -248,21 +297,16 @@ async def process_password(message: Message, state: FSMContext):
                     f"• Сменить пароль: /change\\_password"
                 )
             else:
+                conn.close()
                 remaining = record_failed_attempt(tg_id)
                 if remaining == 0:
                     await state.clear()
-                    await message.answer(
-                        f"🚫 **Превышен лимит попыток.**\n"
-                        f"Аккаунт временно заблокирован на {BLOCK_DURATION_MIN} мин."
-                    )
+                    await message.answer(f"🚫 **Превышен лимит попыток.**\nАккаунт заблокирован на {BLOCK_DURATION_MIN} мин.")
                 else:
-                    await message.answer(
-                        f"❌ Неверный пароль.\n"
-                        f"Осталось попыток: {remaining}\n"
-                        f"Попробуйте снова: /login"
-                    )
+                    await message.answer(f"❌ Неверный пароль. Осталось попыток: {remaining}\nПопробуйте снова: /login")
                     await state.clear()
         else:
+            conn.close()
             record_failed_attempt(tg_id)
             await message.answer("❌ Пользователь не найден. Попробуйте снова: /login")
             await state.clear()
@@ -273,7 +317,8 @@ async def process_password(message: Message, state: FSMContext):
         await state.clear()
 
 
-# /buy
+# --- Оплата и прочие команды ---
+
 @dp.message(Command("buy"))
 async def cmd_buy(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -299,7 +344,6 @@ async def process_pre_checkout(pre_checkout_query: PreCheckoutQuery):
     await pre_checkout_query.answer(ok=True)
 
 
-# Успешная оплата
 @dp.message(F.successful_payment)
 async def process_successful_payment(message: Message):
     payment_info = message.successful_payment
@@ -309,14 +353,12 @@ async def process_successful_payment(message: Message):
     try:
         user_id_db = int(payload.split("_")[-1])
     except Exception as e:
-        logger.error(f"Не удалось распарсить payload ({payload}): {e}")
-        await message.answer("⚠️ Ошибка: не удалось определить ID пользователя.")
+        logger.error(f"Не удалось распарсить payload: {e}")
         return
 
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-
         days = 30
         now_str = datetime.utcnow().isoformat(timespec="seconds")
 
@@ -339,27 +381,24 @@ async def process_successful_payment(message: Message):
 
         await message.answer(
             f"🎉 **Спасибо за покупку!**\n\n"
-            f"Ваша подписка PRO успешно активирована на 30 дней.\n\n"
-            f"• Списано звёзд: {stars_amount} ⭐\n"
-            f"• Подписка активна до: `{new_sub_until[:10]}`\n\n"
-            f"Обновите страницу сайта — PRO-статус уже активен! 🚀\n"
+            f"Подписка PRO активирована на 30 дней.\n"
+            f"• Списано звезд: {stars_amount} ⭐\n"
+            f"• Активна до: `{new_sub_until[:10]}`\n\n"
             f"👉 {SITE_URL}"
         )
     except Exception as e:
-        logger.error(f"Ошибка при сохранении платежа: {e}")
-        await message.answer(f"⚠️ Оплата прошла, но произошла ошибка при обновлении базы: {e}")
+        logger.error(f"Ошибка платежа: {e}")
 
 
-# /change_password — шаг 1
+# --- Смена пароля и отмена подписки ---
+
 @dp.message(Command("change_password"))
 async def cmd_change_password(message: Message, state: FSMContext):
     data = await state.get_data()
     user_id_db = data.get("user_id_db")
-
     if not user_id_db:
         await message.answer("⚠️ Сначала войдите в аккаунт: /login")
         return
-
     await message.answer("🔑 Введите ваш **текущий пароль**:")
     await state.set_state(ChangePasswordStates.waiting_for_old_password)
 
@@ -370,36 +409,21 @@ async def process_old_password(message: Message, state: FSMContext):
         await message.delete()
     except Exception:
         pass
-
     data = await state.get_data()
     user_id_db = data.get("user_id_db")
-
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT password_hash FROM users WHERE id=?", (user_id_db,))
         row = cursor.fetchone()
         conn.close()
-
-        if not row:
-            await message.answer("❌ Пользователь не найден.")
-            await state.set_state(None)
-            return
-
-        password_hash = row[0]
-        old_password = message.text
-
-        if not (check_password_hash(password_hash, old_password) or old_password == password_hash):
+        if not row or not (check_password_hash(row[0], message.text) or message.text == row[0]):
             await message.answer("❌ Неверный текущий пароль. Попробуйте снова: /change\\_password")
             await state.set_state(None)
             return
-
-        await state.update_data(old_password_verified=True)
-        await message.answer("✅ Пароль подтверждён.\n\n🔒 Введите **новый пароль** (минимум 6 символов):")
+        await message.answer("✅ Подтверждено.\n\n🔒 Введите **новый пароль** (минимум 6 символов):")
         await state.set_state(ChangePasswordStates.waiting_for_new_password)
-
     except Exception as e:
-        logger.error(f"Ошибка смены пароля (шаг 1): {e}")
         await message.answer(f"⚠️ Ошибка: {e}")
         await state.set_state(None)
 
@@ -410,15 +434,11 @@ async def process_new_password(message: Message, state: FSMContext):
         await message.delete()
     except Exception:
         pass
-
-    new_password = message.text
-
-    if len(new_password) < 6:
-        await message.answer("❌ Пароль слишком короткий. Минимум 6 символов. Попробуйте ещё раз:")
+    if len(message.text) < 6:
+        await message.answer("❌ Пароль слишком короткий. Минимум 6 символов:")
         return
-
-    await state.update_data(new_password=new_password)
-    await message.answer("🔒 Повторите **новый пароль** для подтверждения:")
+    await state.update_data(new_password=message.text)
+    await message.answer("🔒 Повторите **новый пароль**:")
     await state.set_state(ChangePasswordStates.waiting_for_confirm_password)
 
 
@@ -428,74 +448,337 @@ async def process_confirm_password(message: Message, state: FSMContext):
         await message.delete()
     except Exception:
         pass
-
     data = await state.get_data()
-    new_password = data.get("new_password")
-    user_id_db = data.get("user_id_db")
-    confirm = message.text
-
-    if new_password != confirm:
+    if data.get("new_password") != message.text:
         await message.answer("❌ Пароли не совпадают. Начните заново: /change\\_password")
         await state.set_state(None)
         return
-
     try:
-        new_hash = generate_password_hash(new_password)
+        new_hash = generate_password_hash(message.text)
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET password_hash=? WHERE id=?", (new_hash, user_id_db))
+        cursor.execute("UPDATE users SET password_hash=? WHERE id=?", (new_hash, data.get("user_id_db")))
         conn.commit()
         conn.close()
-
-        await message.answer(
-            "✅ **Пароль успешно изменён!**\n\n"
-            "Используйте новый пароль при следующем входе на сайте и в боте."
-        )
+        await message.answer("✅ **Пароль успешно изменен!**")
         await state.set_state(None)
-
     except Exception as e:
-        logger.error(f"Ошибка смены пароля (шаг 3): {e}")
-        await message.answer(f"⚠️ Ошибка при обновлении пароля: {e}")
+        await message.answer(f"⚠️ Ошибка: {e}")
         await state.set_state(None)
 
 
-# /stop_subscription
 @dp.message(Command("stop_subscription"))
 async def cmd_stop_subscription(message: Message, state: FSMContext):
     data = await state.get_data()
     user_id_db = data.get("user_id_db")
-
     if not user_id_db:
         await message.answer("⚠️ Сначала войдите в аккаунт: /login")
         return
-
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT subscription_until FROM users WHERE id=?", (user_id_db,))
-        user = cursor.fetchone()
-
-        if not user or not user[0]:
-            await message.answer("ℹ️ У вас нет активной подписки.")
-            conn.close()
-            return
-
         now_str = (datetime.utcnow() - timedelta(seconds=1)).isoformat()
         cursor.execute("UPDATE users SET subscription_until=? WHERE id=?", (now_str, user_id_db))
         conn.commit()
         conn.close()
-
-        await message.answer(
-            "🛑 **Подписка отменена.**\n\n"
-            "Доступ к платным материалам на сайте приостановлен.\n"
-            "⚠️ Согласно правилам сервиса, уплаченные средства возврату не подлежат."
-        )
+        await message.answer("🛑 **Подписка отменена.**")
     except Exception as e:
-        logger.error(f"Ошибка /stop_subscription: {e}")
-        await message.answer(f"⚠️ Ошибка при обновлении базы данных: {e}")
+        await message.answer(f"⚠️ Ошибка: {e}")
 
+
+# ==========================================
+# --- КОМАНДЫ ТЕХНИЧЕСКОЙ ПОДДЕРЖКИ (ADMIN) ---
+# ==========================================
+
+@dp.message(Command("admin"))
+async def cmd_admin_panel(message: Message):
+    if not is_admin(message.from_user.id):
+        await message.answer("❌ У вас нет прав администратора.")
+        return
+    await message.answer(
+        "🛠 **Панель технической поддержки (Admin):**\n\n"
+        "• `/permban [email] [причина]` — вечный бан\n"
+        "• `/ban [email] [срок_в_днях] [причина]` — временный бан\n"
+        "• `/givepro [email] [срок_в_днях] [за_что]` — выдать PRO тариф\n"
+        "• `/cancelpro [email] [причина]` — отменить PRO тариф\n"
+        "• `/resetpassword [email]` — сбросить пароль\n"
+        "• `/sms [текст]` — рассылка всем юзерам\n"
+        "• `/smsadmin [текст]` — рассылка админам\n"
+        "• `/setadmin [email]` — сделать админом\n"
+        "• `/rename [email] [новый_ник]` — поменять ник"
+    )
+
+
+@dp.message(Command("permban"))
+async def cmd_permban(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=2)
+    if len(args) < 3:
+        await message.answer("⚠️ Использование: `/permban [email] [причина]`")
+        return
+    email, reason = args[1], args[2]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, telegram_id FROM users WHERE email=?", (email,))
+    u = cursor.fetchone()
+    if not u:
+        conn.close()
+        await message.answer("❌ Пользователь с таким email не найден.")
+        return
+    uid, tg_id = u[0], u[1]
+    cursor.execute("UPDATE users SET status='perm_banned', ban_reason=? WHERE id=?", (reason, uid))
+    conn.commit()
+    conn.close()
+
+    if tg_id:
+        try:
+            await bot.send_message(tg_id, f"🚫 **Ваш аккаунт заблокирован навсегда.**\nПричина: {reason}")
+        except: pass
+    await message.answer(f"✅ Пользователь {email} заблокирован навсегда.")
+
+
+@dp.message(Command("ban"))
+async def cmd_ban(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=3)
+    if len(args) < 4:
+        await message.answer("⚠️ Использование: `/ban [email] [срок_в_днях] [причина]`")
+        return
+    email, days_str, reason = args[1], args[2], args[3]
+    try:
+        days = int(days_str)
+    except ValueError:
+        await message.answer("❌ Срок должен быть числом дней.")
+        return
+
+    banned_until = (datetime.utcnow() + timedelta(days=days)).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, telegram_id FROM users WHERE email=?", (email,))
+    u = cursor.fetchone()
+    if not u:
+        conn.close()
+        await message.answer("❌ Пользователь с таким email не найден.")
+        return
+    uid, tg_id = u[0], u[1]
+    cursor.execute("UPDATE users SET status='banned', banned_until=?, ban_reason=? WHERE id=?", (banned_until, reason, uid))
+    conn.commit()
+    conn.close()
+
+    if tg_id:
+        try:
+            await bot.send_message(tg_id, f"🚫 **Ваш аккаунт заблокирован.**\nСрок до: {banned_until[:16]}\nПричина: {reason}")
+        except: pass
+    await message.answer(f"✅ Пользователь {email} заблокирован на {days} дней.")
+
+
+@dp.message(Command("givepro"))
+async def cmd_givepro(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=3)
+    if len(args) < 4:
+        await message.answer("⚠️ Использование: `/givepro [email] [срок_в_днях] [за_что]`")
+        return
+    email, days_str, reason = args[1], args[2], args[3]
+    try:
+        days = int(days_str)
+    except ValueError:
+        await message.answer("❌ Срок должен быть числом дней.")
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, subscription_until, telegram_id FROM users WHERE email=?", (email,))
+    u = cursor.fetchone()
+    if not u:
+        conn.close()
+        await message.answer("❌ Пользователь с таким email не найден.")
+        return
+    uid, sub_until_str, tg_id = u[0], u[1], u[2]
+    base = (
+        datetime.fromisoformat(sub_until_str)
+        if sub_until_str and datetime.fromisoformat(sub_until_str) > datetime.utcnow()
+        else datetime.utcnow()
+    )
+    new_sub_until = (base + timedelta(days=days)).isoformat()
+    cursor.execute("UPDATE users SET subscription_until=? WHERE id=?", (new_sub_until, uid))
+    conn.commit()
+    conn.close()
+
+    sub_date_formatted = new_sub_until[:10]
+    if tg_id:
+        try:
+            await bot.send_message(tg_id, f"🎉 **Вам выдали тариф!**\nСрок истечения: {sub_date_formatted}\nПричина: {reason}")
+        except: pass
+    await message.answer(f"✅ Пользователю {email} выдан PRO тариф до {sub_date_formatted}.")
+
+
+@dp.message(Command("cancelpro"))
+async def cmd_cancelpro(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=2)
+    if len(args) < 3:
+        await message.answer("⚠️ Использование: `/cancelpro [email] [причина]`")
+        return
+    email, reason = args[1], args[2]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, telegram_id FROM users WHERE email=?", (email,))
+    u = cursor.fetchone()
+    if not u:
+        conn.close()
+        await message.answer("❌ Пользователь с таким email не найден.")
+        return
+    uid, tg_id = u[0], u[1]
+    now_str = (datetime.utcnow() - timedelta(seconds=1)).isoformat()
+    cursor.execute("UPDATE users SET subscription_until=? WHERE id=?", (now_str, uid))
+    conn.commit()
+    conn.close()
+
+    if tg_id:
+        try:
+            await bot.send_message(tg_id, f"🛑 **Ваш PRO тариф был отменен.**\nПричина: {reason}")
+        except: pass
+    await message.answer(f"✅ PRO тариф пользователя {email} отменен.")
+
+
+@dp.message(Command("resetpassword"))
+async def cmd_resetpassword(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        await message.answer("⚠️ Использование: `/resetpassword [email]`")
+        return
+    email = args[1]
+
+    new_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    new_hash = generate_password_hash(new_pass)
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, telegram_id FROM users WHERE email=?", (email,))
+    u = cursor.fetchone()
+    if not u:
+        conn.close()
+        await message.answer("❌ Пользователь с таким email не найден.")
+        return
+    uid, tg_id = u[0], u[1]
+    cursor.execute("UPDATE users SET password_hash=? WHERE id=?", (new_hash, uid))
+    conn.commit()
+    conn.close()
+
+    if tg_id:
+        try:
+            await bot.send_message(tg_id, f"🔑 **Ваш пароль был сброшен.**\nНовый временный пароль: `{new_pass}`")
+        except: pass
+    await message.answer(f"✅ Пароль для {email} сброшен.\nНовый пароль: `{new_pass}`")
+
+
+@dp.message(Command("sms"))
+async def cmd_sms(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        await message.answer("⚠️ Использование: `/sms [текст]`")
+        return
+    text = args[1]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT telegram_id FROM users WHERE telegram_id IS NOT NULL")
+    users = cursor.fetchall()
+    conn.close()
+
+    success, failed = 0, 0
+    for row in users:
+        tg_id = row[0]
+        try:
+            await bot.send_message(tg_id, f"📢 **Рассылка от техподдержки:**\n\n{text}")
+            success += 1
+            await asyncio.sleep(0.05)
+        except:
+            failed += 1
+    await message.answer(f"✅ Рассылка завершена.\nДоставлено: {success}, ошибок: {failed}")
+
+
+@dp.message(Command("smsadmin"))
+async def cmd_smsadmin(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        await message.answer("⚠️ Использование: `/smsadmin [текст]`")
+        return
+    text = args[1]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT telegram_id FROM users WHERE is_admin=1 OR telegram_id IN (%s)" % ','.join(map(str, ADMIN_IDS)))
+    admins = cursor.fetchall()
+    conn.close()
+
+    success = 0
+    for row in admins:
+        tg_id = row[0]
+        if tg_id:
+            try:
+                await bot.send_message(tg_id, f"🛡 **Для админов:**\n\n{text}")
+                success += 1
+            except: pass
+    await message.answer(f"✅ Отправлено админам ({success}).")
+
+
+@dp.message(Command("setadmin"))
+async def cmd_setadmin(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        await message.answer("⚠️ Использование: `/setadmin [email]`")
+        return
+    email = args[1]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE email=?", (email,))
+    u = cursor.fetchone()
+    if not u:
+        conn.close()
+        await message.answer("❌ Пользователь с таким email не найден.")
+        return
+    cursor.execute("UPDATE users SET is_admin=1 WHERE id=?", (u[0],))
+    conn.commit()
+    conn.close()
+    await message.answer(f"✅ Пользователь {email} теперь администратор.")
+
+
+@dp.message(Command("rename"))
+async def cmd_rename(message: Message):
+    if not is_admin(message.from_user.id): return
+    args = message.text.split(maxsplit=2)
+    if len(args) < 3:
+        await message.answer("⚠️ Использование: `/rename [email] [новый_ник]`")
+        return
+    email, new_name = args[1], args[2]
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE email=?", (email,))
+    u = cursor.fetchone()
+    if not u:
+        conn.close()
+        await message.answer("❌ Пользователь с таким email не найден.")
+        return
+    cursor.execute("UPDATE users SET username=? WHERE id=?", (new_name, u[0]))
+    conn.commit()
+    conn.close()
+    await message.answer(f"✅ Ник пользователя {email} изменен на `{new_name}`.")
+
+
+# --- Запуск ---
 
 async def main():
+    init_db_columns()
     if os.path.exists(DB_PATH):
         logger.info(f"База данных найдена: {DB_PATH}")
     else:
