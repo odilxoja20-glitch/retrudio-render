@@ -117,8 +117,8 @@ async def cmd_help(message: Message):
         "/login — войти в аккаунт\n"
         "/buy — купить подписку (30 дней)\n"
         "/status — проверить статус подписки\n"
-        "/change\\_password — сменить пароль\n"
-        "/stop\\_subscription — отменить подписку\n"
+        "/change_password — сменить пароль\n"
+        "/stop_subscription — отменить подписку\n"
         "/help — это сообщение"
     )
 
