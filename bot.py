@@ -27,7 +27,7 @@ SUBSCRIPTION_PRICE = os.getenv("SUBSCRIPTION_PRICE")
 SITE_URL = os.getenv("SITE_URL", "https://retrudio.com")
 
 # Список ID администраторов
-ADMIN_IDS = [5025390367, 5025390367]
+ADMIN_IDS = [5025390367, 8221414112]
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -792,4 +792,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("Бот остановлен.")
+        logger.info("Бот остановлен.")s
