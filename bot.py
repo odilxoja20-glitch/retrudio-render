@@ -78,8 +78,9 @@ def init_db_columns():
             
         conn.commit()
         conn.close()
-    except Exception as e:
-.error(f"Ошибка инициализации колонок БД: {e}")
+        except Exception as e:
+        logger.error(f"Ошибка инициализации колонок БД: {e}")
+
 
 
 def is_admin(tg_id: int) -> bool:
