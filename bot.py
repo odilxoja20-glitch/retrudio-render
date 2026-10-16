@@ -157,6 +157,13 @@ async def cmd_help(message: Message):
         "/help — это сообщение"
     )
 
+@dp.message(Command("support"))
+async def cmd_support(message: Message):
+    await message.answer(
+        "САППОРТ НЕ ДОСТУПЕН ЗДЕСЬ! Продолжите в одном из двух:\n"
+        "t.me/rahmatullohrobot — t.me/odilxojarobot"
+    )
+
 
 @dp.message(Command("status"))
 async def cmd_status(message: Message, state: FSMContext):
